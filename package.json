@@ -9,15 +9,29 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.7.0",
+    "jodit": "^4.13.23",
+    "jodit-react": "^5.4.72",
+    "jsonwebtoken": "^9.0.2",
+    "jspdf": "^3.0.1",
+    "lucide-react": "^0.536.0",
+    "mysql2": "^3.14.3",
+    "next": "15.4.10",
+    "nodemailer": "^7.0.6",
+    "openai": "^7.8.0",
+    "pdfkit": "^0.17.1",
+    "razorpay": "^2.9.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.4.6"
+    "react-hot-toast": "^2.6.0",
+    "stream": "^0.0.3"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4"
   }
 }
