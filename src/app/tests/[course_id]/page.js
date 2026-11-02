@@ -72,8 +72,8 @@ export default function TestsPage() {
           
           return {
             testId: test.id,
-            attempts: data.attempts || 0,
-            maxReached: data.attempts >= 3
+            attempts: data.total_attempts || 0,
+            maxReached: (data.total_attempts || 0) >= 3
           };
         } catch (error) {
           console.error(`Failed to check attempts for test ${test.id}:`, error);

@@ -9,7 +9,6 @@ import {
   isCorrectAnswer,
   marksForAnswer,
   totalMarks,
-  round2,
 } from '../../lib/questionTypes';
 
 const TYPE_LABELS = {
@@ -139,16 +138,6 @@ export default function MCQTest() {
     }
   };
 
-  // Marks-based scoring: +marks for correct, -negative_marks for attempted & wrong.
-  // Returns the percentage of total marks (can go below 0 with negative marking).
-  const calculateScore = () => {
-    const obtained = round2(
-      questions.reduce((sum, question, index) => sum + marksForAnswer(question, answers[index]), 0)
-    );
-    setMarksObtained(obtained);
-    return maxMarks > 0 ? Math.round((obtained / maxMarks) * 100) : 0;
-  };
-
   const handleSubmit = async () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -159,9 +148,8 @@ export default function MCQTest() {
     setSubmitting(true);
 
     try {
-      const score = calculateScore();
-
-      // Updated API call to /api/results
+      // The server scores the test (+marks / -negative_marks) and only then
+      // sends back the correct answers for the results screen.
       const submitResponse = await fetch('/api/results', {
         method: 'POST',
         headers: {
@@ -170,14 +158,19 @@ export default function MCQTest() {
         },
         body: JSON.stringify({
           test_id: parseInt(testId),
-          score: score
+          answers: questions.map((question, index) => ({
+            question_id: question.id,
+            answer: answers[index] ?? null,
+          })),
         }),
       });
 
       const submitData = await submitResponse.json();
 
-      if (submitData.success || submitResponse.ok) {
-        setFinalScore(score);
+      if (submitResponse.ok && submitData.success) {
+        setQuestions(prev => prev.map(q => ({ ...q, answer: submitData.answers?.[q.id] || null })));
+        setMarksObtained(submitData.marks_obtained);
+        setFinalScore(submitData.score);
         setIsSubmitted(true);
         setShowResults(true);
       } else {
@@ -408,7 +401,7 @@ export default function MCQTest() {
       questions.forEach((question, index) => {
         const userAnswer = answers[index];
         const qType = normalizeType(question.question_type);
-        const correctList = qType === 'MSQ' ? parseMsqAnswer(question.answer.correct_answer) : [question.answer.correct_answer];
+        const correctList = qType === 'MSQ' ? parseMsqAnswer(question.answer?.correct_answer) : [question.answer?.correct_answer];
         const isCorrect = isCorrectAnswer(question, userAnswer);
         const isUnanswered = !isAttempted(question, userAnswer);
         const earned = marksForAnswer(question, userAnswer);
@@ -463,11 +456,11 @@ export default function MCQTest() {
 
         htmlContent += `</div>`;
 
-        if (question.answer.about_answer) {
+        if (question.answer?.about_answer) {
           htmlContent += `
             <div class="explanation">
               <div class="explanation-title">💡 Explanation:</div>
-              <div>${question.answer.about_answer}</div>
+              <div>${question.answer?.about_answer}</div>
             </div>
           `;
         }
@@ -623,7 +616,7 @@ export default function MCQTest() {
             {questions.map((question, index) => {
               const userAnswer = answers[index];
               const qType = normalizeType(question.question_type);
-              const correctList = qType === 'MSQ' ? parseMsqAnswer(question.answer.correct_answer) : [question.answer.correct_answer];
+              const correctList = qType === 'MSQ' ? parseMsqAnswer(question.answer?.correct_answer) : [question.answer?.correct_answer];
               const isCorrect = isCorrectAnswer(question, userAnswer);
               const attempted = isAttempted(question, userAnswer);
               const earned = marksForAnswer(question, userAnswer);
@@ -710,10 +703,10 @@ export default function MCQTest() {
                     })}
                   </div>
 
-                  {question.answer.about_answer && (
+                  {question.answer?.about_answer && (
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                       <h4 className="font-bold text-blue-800 mb-2">Explanation:</h4>
-                      <p className="text-blue-700">{question.answer.about_answer}</p>
+                      <p className="text-blue-700">{question.answer?.about_answer}</p>
                     </div>
                   )}
 

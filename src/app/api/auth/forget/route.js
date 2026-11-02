@@ -3,6 +3,8 @@ import db from "../../../lib/db";
 import crypto from "crypto";
 import { transporter } from "../../../lib/mailer";
 
+const OTP_REQUESTS_PER_HOUR = 5;
+
 // ✅ Generate random 6-digit OTP
 function generateOTP() {
   return crypto.randomInt(100000, 999999).toString();
@@ -29,10 +31,29 @@ export async function POST(req) {
       return NextResponse.json({ message: "Email is required" }, { status: 400 });
     }
 
-    // ✅ Check if user exists
-    const [users] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
+    // ✅ Same reply whether or not the account exists, so this can't be used
+    // to find out which emails are registered.
+    const genericReply = NextResponse.json({
+      message: "If this email is registered, an OTP has been sent to it.",
+      email,
+    });
+
+    const [users] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
     if (users.length === 0) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
+      return genericReply;
+    }
+
+    // ✅ Limit how many OTPs can be requested (each wrong guess burns one)
+    const [[{ recent }]] = await db.query(
+      `SELECT COUNT(*) AS recent FROM otp_requests_forget
+       WHERE email = ? AND created_at > NOW() - INTERVAL 1 HOUR`,
+      [email]
+    );
+    if (recent >= OTP_REQUESTS_PER_HOUR) {
+      return NextResponse.json(
+        { message: "Too many OTP requests. Please try again after an hour." },
+        { status: 429 }
+      );
     }
 
     // ✅ Generate OTP
@@ -90,8 +111,7 @@ export async function POST(req) {
     // ✅ Send Email
     await sendOTP(email, subject, html);
 
-    console.log(`📩 OTP sent to ${email}: ${otp}`);
-    return NextResponse.json({ message: "OTP sent successfully", email });
+    return genericReply;
   } catch (err) {
     console.error("❌ Error in forget password:", err);
     return NextResponse.json({ message: "Server error" }, { status: 500 });

@@ -19,6 +19,19 @@ export async function POST(req) {
       return NextResponse.json({ message: "User already exists" }, { status: 400 });
     }
 
+    // Limit how many OTPs can be requested (each wrong guess burns one)
+    const [[{ recent }]] = await db.query(
+      `SELECT COUNT(*) AS recent FROM otp_requests
+       WHERE email = ? AND created_at > NOW() - INTERVAL 1 HOUR`,
+      [email]
+    );
+    if (recent >= 5) {
+      return NextResponse.json(
+        { message: "Too many OTP requests. Please try again after an hour." },
+        { status: 429 }
+      );
+    }
+
     const otp = generateOTP();
     const expirationTime = new Date(Date.now() + 5 * 60000); // 5 min
 

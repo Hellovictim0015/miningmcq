@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import Razorpay from 'razorpay';
 import db from '../../../lib/db';
 import { getUserFromRequest } from '../../../lib/auth';
+import { getRazorpay } from '../../../lib/payments';
 
 const PRODUCT_TYPES = {
   mcq_course: { table: 'courses', priceColumn: 'course_price' },
@@ -32,15 +32,17 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    const amount = rows[0].price;
+    // mysql2 returns DECIMAL as a string, and e.g. 149.99 * 100 is not an
+    // integer in floating point; Razorpay rejects non-integer paise.
+    const amountPaise = Math.round(Number(rows[0].price) * 100);
+    if (!Number.isFinite(amountPaise) || amountPaise < 100) {
+      return NextResponse.json({ error: 'This item has no valid price set' }, { status: 400 });
+    }
 
-    const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    });
+    const razorpay = getRazorpay();
 
     const options = {
-      amount: amount * 100, // in paise
+      amount: amountPaise,
       currency: 'INR',
       receipt: 'receipt_order_' + Date.now(),
       // Bound to this specific user/course/price at creation time so verify

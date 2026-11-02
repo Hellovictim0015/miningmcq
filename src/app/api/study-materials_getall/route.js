@@ -13,7 +13,9 @@ export async function GET(req) {
     const queryParams = category ? [category, limit, offset] : [limit, offset];
 
     const [rows] = await db.query(
-      `SELECT id, title, subject, price, pdf_url, category_id, created_at
+      // pdf_url is left out on purpose: /api/study-materials_download hands it
+      // out only for free or purchased materials.
+      `SELECT id, title, subject, price, category_id, created_at
        FROM study_materials
        ${whereClause}
        ORDER BY created_at DESC

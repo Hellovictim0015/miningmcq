@@ -23,11 +23,13 @@ export async function POST(req) {
     const otpRecord = rows[0];
 
     if (otpRecord.is_verified) {
-      return NextResponse.json({ message: "OTP already verified" }, { status: 400 });
+      return NextResponse.json({ message: "OTP already used. Please request a new one." }, { status: 400 });
     }
 
-    if (otpRecord.otp_code !== otp) {
-      return NextResponse.json({ message: "Invalid OTP" }, { status: 400 });
+    // A wrong guess burns the OTP so it can't be brute-forced.
+    if (String(otpRecord.otp_code) !== String(otp)) {
+      await db.query("UPDATE otp_requests SET is_verified = 1 WHERE request_id = ?", [otpRecord.request_id]);
+      return NextResponse.json({ message: "Wrong OTP. Please request a new one." }, { status: 400 });
     }
 
     if (new Date(otpRecord.expiration_time) < new Date()) {
