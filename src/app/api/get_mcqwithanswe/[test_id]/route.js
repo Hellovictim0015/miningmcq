@@ -47,15 +47,9 @@ export async function GET(req, { params }) {
         q.negative_marks,
         o.id AS option_id,
         o.option_text,
-        o.option_image,
-        a.id AS answer_id,
-        a.correct_answer,
-        a.about_answer,
-        a.answer_time,
-        a.answer_tolerance
+        o.option_image
       FROM questions q
       LEFT JOIN options o ON q.id = o.question_id
-      LEFT JOIN answers a ON q.id = a.question_id
       WHERE q.test_id = ?
       ORDER BY q.id, o.id
       `,
@@ -74,15 +68,9 @@ export async function GET(req, { params }) {
           marks: Number(row.marks),
           negative_marks: Number(row.negative_marks),
           options: [],
-          answer: row.answer_id
-            ? {
-                id: row.answer_id,
-                correct_answer: row.correct_answer,
-                about_answer: row.about_answer,
-                answer_time: row.answer_time,
-                answer_tolerance: Number(row.answer_tolerance),
-              }
-            : null,
+          // Correct answers are only sent back by POST /api/results after the
+          // test is submitted, so they can't be read from the network tab.
+          answer: null,
         };
       }
       if (row.option_id) {

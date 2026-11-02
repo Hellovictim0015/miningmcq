@@ -10,19 +10,29 @@ export async function POST(req) {
       return NextResponse.json({ message: "All fields are required" }, { status: 400 });
     }
 
-    // ✅ Find OTP record
+    // ✅ Find the latest unused OTP for this email
     const [rows] = await db.query(
-      `SELECT * FROM otp_requests_forget 
-       WHERE email = ? AND otp_code = ? AND is_verified = 0 
+      `SELECT * FROM otp_requests_forget
+       WHERE email = ? AND is_verified = 0
        ORDER BY created_at DESC LIMIT 1`,
-      [email, otp]
+      [email]
     );
 
     if (rows.length === 0) {
-      return NextResponse.json({ message: "Invalid or expired OTP" }, { status: 400 });
+      return NextResponse.json({ message: "Invalid or expired OTP. Please request a new one." }, { status: 400 });
     }
 
     const otpRecord = rows[0];
+
+    // ✅ A wrong guess burns the OTP, so it can't be brute-forced; together
+    // with the per-hour request limit in /api/auth/forget this caps guesses.
+    if (String(otpRecord.otp_code) !== String(otp)) {
+      await db.query("UPDATE otp_requests_forget SET is_verified = 1 WHERE request_id = ?", [
+        otpRecord.request_id,
+      ]);
+      return NextResponse.json({ message: "Wrong OTP. Please request a new one." }, { status: 400 });
+    }
+
     if (new Date(otpRecord.expiration_time) < new Date()) {
       return NextResponse.json({ message: "OTP expired" }, { status: 400 });
     }

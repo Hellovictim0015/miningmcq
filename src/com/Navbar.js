@@ -24,9 +24,21 @@ const navLinks = [
   // ✅ Check login state on mount
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    if (token) {
-      setIsLoggedIn(true);
-    }
+    if (!token) return;
+    setIsLoggedIn(true);
+
+    // The JWT expires after 7 days. Without this check the site keeps showing
+    // the user as logged in while every API call fails, which looks like their
+    // purchases disappeared. Only a definite 401 logs out; network errors don't.
+    fetch("/api/auth/checkauth", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        if (res.status === 401) {
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("authid");
+          setIsLoggedIn(false);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleLogin = () => {

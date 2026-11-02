@@ -2,6 +2,7 @@
 import { BookOpen, Download, FileText, Video, Users, Star, Menu, X, Search, PlayCircle, Lock, CreditCard, CheckCircle, Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getCheckoutPrefill } from "../app/lib/checkoutPrefill";
 
 function Materials({ limit, viewAllHref = '/navlinkmaterials', category }) {
   const router = useRouter();
@@ -184,6 +185,8 @@ function Materials({ limit, viewAllHref = '/navlinkmaterials', category }) {
         throw new Error("Order creation failed - no order ID returned");
       }
 
+      const prefill = await getCheckoutPrefill(token);
+
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -221,7 +224,7 @@ function Materials({ limit, viewAllHref = '/navlinkmaterials', category }) {
             }
           } catch (verifyError) {
             console.error("Payment verification error:", verifyError);
-            alert("Payment verification failed. Please contact support if payment was deducted.");
+            alert("Payment received but we could not confirm it yet. Please wait a minute and use \"Already purchased? Refresh\" or reload the page; contact support if it is still locked.");
           } finally {
             setPaymentLoading(null);
           }
@@ -231,11 +234,7 @@ function Materials({ limit, viewAllHref = '/navlinkmaterials', category }) {
             setPaymentLoading(null);
           }
         },
-        prefill: {
-          name: "Test User",
-          email: "test@example.com",
-          contact: "9999999999"
-        },
+        prefill,
         theme: {
           color: "#EAB308"
         },
@@ -261,14 +260,35 @@ function Materials({ limit, viewAllHref = '/navlinkmaterials', category }) {
     }
   };
 
+  // The list API doesn't include pdf_url; ask the server for it, which only
+  // hands it out for free or purchased materials.
+  const downloadMaterial = async (material) => {
+    try {
+      setDownloadingMaterial(material.title);
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`/api/study-materials_download?id=${material.id}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.pdf_url) {
+        throw new Error(data.message || 'Could not get the download link');
+      }
+      await downloadPDF(data.pdf_url, material.title);
+    } catch (error) {
+      console.error('Download link error:', error);
+      alert(`Download failed: ${error.message}`);
+      setDownloadingMaterial(null);
+    }
+  };
+
   // Handle download/purchase action
   const handleAction = (material) => {
     const materialPrice = parseFloat(material.price);
-    
+
     if (materialPrice === 0) {
-      downloadPDF(material.pdf_url, material.title);
+      downloadMaterial(material);
     } else if (purchasedMaterials.has(material.id)) {
-      downloadPDF(material.pdf_url, material.title);
+      downloadMaterial(material);
     } else {
       handlePurchase(material);
     }

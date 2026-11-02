@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { getCheckoutPrefill } from '../../lib/checkoutPrefill';
 import {
   PlayCircle,
   Clock,
@@ -65,6 +66,23 @@ export default function CourseDetails() {
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
+  };
+
+  // The API only includes video_url for buyers, so after a purchase the course
+  // has to be fetched again or the player stays empty until a page reload.
+  const reloadCourse = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`/api/get-course_video/${slug}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+      });
+      const result = await res.json();
+      if (res.ok && result.success && result.data) {
+        setCourse(result.data);
+      }
+    } catch (err) {
+      console.error('Error reloading course after purchase:', err);
+    }
   };
 
   useEffect(() => {
@@ -200,6 +218,8 @@ export default function CourseDetails() {
       }
 
       // Step 2: Open Razorpay checkout
+      const prefill = await getCheckoutPrefill(token);
+
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -233,13 +253,14 @@ export default function CourseDetails() {
             if (verifyData.success) {
               // Payment verified successfully, update the UI immediately
               setIsPurchased(true);
+              await reloadCourse();
               alert("🎉 Payment successful! Course unlocked. You can now access the full video content.");
             } else {
               throw new Error(verifyData.message || "Payment verification failed");
             }
           } catch (verifyError) {
             console.error("Payment verification error:", verifyError);
-            alert("Payment verification failed. Please contact support if payment was deducted.");
+            alert("Payment received but we could not confirm it yet. Please wait a minute and use \"Refresh Purchase Status\" or reload the page; contact support if it is still locked.");
           } finally {
             setPaymentLoading(false);
           }
@@ -249,11 +270,7 @@ export default function CourseDetails() {
             setPaymentLoading(false);
           }
         },
-        prefill: {
-          name: "Test User",
-          email: "test@example.com",
-          contact: "9999999999"
-        },
+        prefill,
         theme: {
           color: "#EF4444"
         },
@@ -325,6 +342,7 @@ export default function CourseDetails() {
         setIsPurchased(isUnlocked);
 
         if (isUnlocked) {
+          if (!course.video_url) await reloadCourse();
           alert('✅ Course is unlocked! You can now watch the full video.');
         } else {
           alert('ℹ️ Course is still locked. Please complete the purchase.');

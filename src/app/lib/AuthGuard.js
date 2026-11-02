@@ -17,7 +17,7 @@ const AuthGuard = ({ children }) => {
       }
 
       try {
-        const response = await fetch('api/auth/checkauth', {   // ✅ Next.js API route
+        const response = await fetch('/api/auth/checkauth', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

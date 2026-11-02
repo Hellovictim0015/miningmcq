@@ -36,6 +36,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import { getCheckoutPrefill } from '../../lib/checkoutPrefill';
 
 export default function MCQCourseDetailsPage() {
   const params = useParams();
@@ -208,6 +209,8 @@ export default function MCQCourseDetailsPage() {
       }
 
       // Step 2: Open Razorpay checkout
+      const prefill = await getCheckoutPrefill(token);
+
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -244,7 +247,7 @@ export default function MCQCourseDetailsPage() {
             }
           } catch (verifyError) {
             console.error("Payment verification error:", verifyError);
-            alert("Payment verification failed. Please contact support if payment was deducted.");
+            alert("Payment received but we could not confirm it yet. Please wait a minute and use \"Refresh Purchase Status\" or reload the page; contact support if it is still locked.");
           } finally {
             setPaymentLoading(false);
           }
@@ -254,11 +257,7 @@ export default function MCQCourseDetailsPage() {
             setPaymentLoading(false);
           }
         },
-        prefill: {
-          name: "Test User", // Replace with actual user data
-          email: "test@example.com", // Replace with actual user email
-          contact: "9999999999" // Replace with actual user contact
-        },
+        prefill,
         theme: {
           color: "#6366F1"
         },

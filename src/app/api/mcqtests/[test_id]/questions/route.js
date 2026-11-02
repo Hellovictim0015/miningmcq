@@ -55,17 +55,12 @@ export async function GET(req, { params }) {
       questionIds
     );
 
-    // 3️⃣ Fetch answers for all questions
-    const [answers] = await db.query(
-      `SELECT * FROM answers WHERE question_id IN (${questionIds.map(() => "?").join(",")})`,
-      questionIds
-    );
-
-    // 4️⃣ Combine data
+    // 3️⃣ Combine data. Answers are deliberately left out: they are only
+    // returned by POST /api/results after the test is submitted.
     const result = questions.map(q => ({
       ...q,
       options: options.filter(o => o.question_id === q.id),
-      answer: answers.find(a => a.question_id === q.id) || null
+      answer: null
     }));
 
     return NextResponse.json({ success: true, data: result });
