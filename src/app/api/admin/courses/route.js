@@ -20,6 +20,7 @@ export async function POST(req) {
     const totaltest = formData.get("totaltest") || 0;
     const category_id = formData.get("category_id") || null;
     const file = formData.get("img"); // file input field (image)
+    const exam_duration_minutes = parseInt(formData.get("exam_duration_minutes"), 10) || 60;
 
     if (!course_name || !course_name.trim()) {
       return NextResponse.json(
@@ -49,8 +50,8 @@ export async function POST(req) {
 
     const [result] = await pool.query(
       `INSERT INTO courses
-      (course_name, slug, course_price, language, description, duration, totaltest, img_url, category_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (course_name, slug, course_price, language, description, duration, totaltest, img_url, category_id, exam_duration_minutes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         course_name,
         finalSlug,
@@ -61,6 +62,7 @@ export async function POST(req) {
         totaltest,
         img_url,
         category_id,
+        exam_duration_minutes,
       ]
     );
 

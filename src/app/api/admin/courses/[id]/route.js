@@ -42,6 +42,7 @@ export async function PUT(req, { params }) {
     const totaltest = formData.get("totaltest");
     const category_id = formData.get("category_id") || null;
     const file = formData.get("img");
+    const exam_duration_minutes = parseInt(formData.get("exam_duration_minutes"), 10) || 60;
 
     if (!course_name || !course_name.trim()) {
       return NextResponse.json({ error: "course_name is required" }, { status: 400 });
@@ -80,6 +81,7 @@ export async function PUT(req, { params }) {
         duration = ?,
         totaltest = ?,
         category_id = ?,
+        exam_duration_minutes = ?,
         img_url = COALESCE(?, img_url)
        WHERE id = ?`,
       [
@@ -91,6 +93,7 @@ export async function PUT(req, { params }) {
         duration || null,
         totaltest || null,
         category_id,
+        exam_duration_minutes,
         img_url,
         id,
       ]

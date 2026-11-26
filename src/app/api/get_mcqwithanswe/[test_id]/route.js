@@ -82,8 +82,15 @@ export async function GET(req, { params }) {
       }
     });
 
+    const [courseRows] = await db.query(
+      "SELECT exam_duration_minutes FROM courses WHERE id = ?",
+      [testRows[0].course_id]
+    );
+    const exam_duration_minutes = Number(courseRows[0]?.exam_duration_minutes) || 60;
+
     return NextResponse.json({
       success: true,
+      exam_duration_minutes,
       data: Object.values(questions),
     });
   } catch (error) {
