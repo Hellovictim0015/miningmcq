@@ -2,6 +2,7 @@ import pool from "../../../lib/db";
 import cloudinary from "../../../lib/cloudinary";
 import { requireAdminSession } from "../../../lib/auth";
 import { NextResponse } from "next/server";
+import { ensureUniqueSlug } from "../../../lib/slugify";
 
 export async function POST(req) {
   const gate = requireAdminSession(req);
@@ -20,12 +21,15 @@ export async function POST(req) {
     const category_id = formData.get("category_id") || null;
     const file = formData.get("img"); // file input field (image)
 
-    if (!course_name || !slug) {
+    if (!course_name || !course_name.trim()) {
       return NextResponse.json(
-        { error: "course_name and slug are required" },
+        { error: "course_name is required" },
         { status: 400 }
       );
     }
+
+    // Hindi titles produce an empty ASCII slug -> generate a fallback / unique one
+    const finalSlug = await ensureUniqueSlug(pool, slug || course_name);
 
     let img_url = null;
 
@@ -49,7 +53,7 @@ export async function POST(req) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         course_name,
-        slug,
+        finalSlug,
         course_price || null,
         language || null,
         description || null,

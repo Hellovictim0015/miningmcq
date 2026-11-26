@@ -2,6 +2,7 @@ import pool from "../../../../lib/db";
 import cloudinary from "../../../../lib/cloudinary";
 import { requireAdminSession } from "../../../../lib/auth";
 import { NextResponse } from "next/server";
+import { ensureUniqueSlug } from "../../../../lib/slugify";
 
 // ---------------- GET by ID ----------------
 export async function GET(req, { params }) {
@@ -42,6 +43,18 @@ export async function PUT(req, { params }) {
     const category_id = formData.get("category_id") || null;
     const file = formData.get("img");
 
+    if (!course_name || !course_name.trim()) {
+      return NextResponse.json({ error: "course_name is required" }, { status: 400 });
+    }
+
+    // Keep the existing slug if the new one is empty (e.g. Hindi title)
+    let finalSlug = slug;
+    if (!finalSlug) {
+      const [cur] = await pool.query("SELECT slug FROM courses WHERE id = ?", [id]);
+      finalSlug = cur[0]?.slug || course_name;
+    }
+    finalSlug = await ensureUniqueSlug(pool, finalSlug, id);
+
     let img_url = null;
 
     if (file && file.size > 0) {
@@ -71,7 +84,7 @@ export async function PUT(req, { params }) {
        WHERE id = ?`,
       [
         course_name || null,
-        slug || null,
+        finalSlug,
         course_price || null,
         language || null,
         description || null,

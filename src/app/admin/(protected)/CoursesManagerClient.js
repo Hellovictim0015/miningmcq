@@ -106,8 +106,12 @@ export default function CoursesPage() {
         method: "POST",
         body: formData,
       });
-      const data = await res.json();
-      
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showNotification(data.error || "Failed to add course", "error");
+        return;
+      }
+
       setForm({
         course_name: "",
         slug: "",
@@ -153,7 +157,11 @@ export default function CoursesPage() {
         method: "PUT",
         body: formData,
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showNotification(data.error || "Failed to update course", "error");
+        return;
+      }
 
       setEditingCourse(null);
       setEditFile(null);
@@ -173,7 +181,11 @@ export default function CoursesPage() {
       const res = await adminFetch(`/api/admin/courses/${id}`, {
         method: "DELETE",
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showNotification(data.error || "Failed to delete course", "error");
+        return;
+      }
       fetchCourses();
       setDeleteConfirm(null);
       showNotification("Course deleted successfully!");
