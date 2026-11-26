@@ -34,6 +34,7 @@ export default function CoursesPage() {
     description: "",
     duration: "",
     totaltest: "",
+    exam_duration_minutes: "60",
     category_id: "",
   });
   const [file, setFile] = useState(null);
@@ -120,6 +121,7 @@ export default function CoursesPage() {
         description: "",
         duration: "",
         totaltest: "",
+        exam_duration_minutes: "60",
         category_id: "",
       });
       setFile(null);
@@ -316,6 +318,22 @@ export default function CoursesPage() {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Exam Time (minutes) *</label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="e.g., 60 (1 hour), 120 (2 hours)"
+                      value={form.exam_duration_minutes}
+                      onChange={(e) => setForm({ ...form, exam_duration_minutes: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                   <select
                     value={form.category_id}
@@ -439,6 +457,18 @@ export default function CoursesPage() {
                       value={editingCourse.totaltest}
                       onChange={(e) => setEditingCourse({ ...editingCourse, totaltest: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Exam Time (minutes) *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editingCourse.exam_duration_minutes ?? 60}
+                      onChange={(e) => setEditingCourse({ ...editingCourse, exam_duration_minutes: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      required
                     />
                   </div>
 

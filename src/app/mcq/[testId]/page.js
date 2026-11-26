@@ -59,6 +59,8 @@ export default function MCQTest() {
         const data = await response.json();
 
         if (data.success) {
+          // Exam time is set per course by the admin (default 60 minutes)
+          setTimeLeft((Number(data.exam_duration_minutes) || 60) * 60);
           setQuestions(data.data);
         } else {
           setError(data.message || "Failed to fetch questions");
